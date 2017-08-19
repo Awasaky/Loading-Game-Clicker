@@ -1,24 +1,32 @@
 -- -----------------------------------------------------------------------------------
--- Есть условно первоначальный старт, в котором в зависимости от числа кликов, отображаются разные элементы
--- и обычный запуск игры, в котором уже элементы интерфейса все видны и надо подключать ботов и вирусы
+-- In a first launch, new elements come to screen after players taps
+-- In any another launch, all elements already on screen 
 -- -----------------------------------------------------------------------------------
 
+--requiries are first!
 local composer = require( "composer" )
 
+--composer utility variable
 local scene = composer.newScene()
+
+--JSON support
+local json = require( "json" )
 
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
--- variables to build scene
+-- variables to gameloop works
 local gameLoopTimer
+local gameLoopDelay = 100
 
-local backGroup -- background group
-local mainGroup -- primary group
-local uiGroup -- information group
+--Screen groups
+local backGroup
+local mainGroup
+local uiGroup
 
+--UI text settings
 local panelFont = native.newFont( "Arial Black" )
 local panelPosY = 40
 
@@ -27,9 +35,18 @@ local textBelieve
 local textLoadSpd
 local textLoadTot
 
-local tapsPlayerPrev = 0
+-- taps speed check
+local gameLoopCycles = math.floor( Не1000 / gameLoopDelay )
+local lastTapsCount
 
-local json = require( "json" )
+--Make table for check taps per last 1 second
+local tapsPlayerCheck = {}
+local tapsPlayerNext = 0
+
+--Adding to table zeros for a start
+for i = 1, gameLoopCycles do
+    table.insert( tapsPlayerCheck, 0 )
+end
 
 -- Сonfiguration files operations
 -- Link to config file
@@ -77,31 +94,43 @@ local function loadConfig()
 end
 
 local function gotoShop()
-
+    print('gotoShop')
 end
 
 local function gotoStats()
-
+    print('gotoStats')
 end
 
 local function gotoCheats()
-
+    print('gotoCheats')
 end
 
 local function tapSingle()
-
     tableConfig.tapsPlayer = tableConfig.tapsPlayer + 1
-
 end
 
+--Every second 
 local function gameLoop()
 
-    local lastTaps
-    lastTaps = ( tableConfig.tapsPlayer - tapsPlayerPrev ) * 10
-    textTapsSpd.text = lastTaps
+    tapsPlayerNext = tapsPlayerNext + 1
+    if tapsPlayerNext > gameLoopCycles then
+        tapsPlayerNext = 1
+    end
+
+    tapsPlayerCheck[tapsPlayerNext] = tableConfig.tapsPlayer - lastTapsCount
+    --print(tapsPlayerCheck[tapsPlayerNext])
+    
+    local tapsSpd = 0
+
+    for i = 1, gameLoopCycles do
+        tapsSpd = tapsSpd + tapsPlayerCheck[i]
+    end
+
+    textTapsSpd.text = tapsSpd
     tapsPlayerPrev = tableConfig.tapsPlayer
     textLoadTot.text = tableConfig.tapsPlayer
 
+    lastTapsCount = tableConfig.tapsPlayer
 end
 
 -- -----------------------------------------------------------------------------------
@@ -114,6 +143,7 @@ function scene:create( event )
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 	loadConfig() -- загрузка конфигурации
+    lastTapsCount = 0
 
 	-- Set up display groups
 	backGroup = display.newGroup()  -- Display group for the background image
@@ -179,7 +209,7 @@ function scene:show( event )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs when the scene is entirely on screen
-        gameLoopTimer = timer.performWithDelay( 100, gameLoop, 0 )
+        gameLoopTimer = timer.performWithDelay( gameLoopDelay, gameLoop, 0 )
 	end
 end
 
