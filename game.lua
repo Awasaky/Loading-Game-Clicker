@@ -20,13 +20,14 @@ local mainGroup -- primary group
 local uiGroup -- information group
 
 local panelFont = native.newFont( "Arial Black" )
-local panelPosY = 70
+local panelPosY = 40
 
-local textTapsTot
 local textTapsSpd
 local textBelieve
 local textLoadSpd
 local textLoadTot
+
+local tapsPlayerPrev = 0
 
 local json = require( "json" )
 
@@ -75,6 +76,34 @@ local function loadConfig()
     end
 end
 
+local function gotoShop()
+
+end
+
+local function gotoStats()
+
+end
+
+local function gotoCheats()
+
+end
+
+local function tapSingle()
+
+    tableConfig.tapsPlayer = tableConfig.tapsPlayer + 1
+
+end
+
+local function gameLoop()
+
+    local lastTaps
+    lastTaps = ( tableConfig.tapsPlayer - tapsPlayerPrev ) * 10
+    textTapsSpd.text = lastTaps
+    tapsPlayerPrev = tableConfig.tapsPlayer
+    textLoadTot.text = tableConfig.tapsPlayer
+
+end
+
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -97,14 +126,14 @@ function scene:create( event )
 	sceneGroup:insert( uiGroup )    -- Insert into the scene's view group
 
 	-- Load the background
-    -- 720 / 4 == 180
     local background = display.newImageRect( backGroup, "assets/001/back.png", 1280, 720 )
     background.x = display.contentCenterX
     background.y = display.contentCenterY
 
-    local topbar = display.newImageRect( backGroup, "assets/001/topbar.png", 1600, 90 )
-    topbar.x = display.contentCenterX + 160
-    topbar.y = 45
+    -- top bar, centered and also all texts ready to refresh
+    local topbar = display.newImageRect( backGroup, "assets/001/topbar.png", 1280, 60 )
+    topbar.x = display.contentCenterX
+    topbar.y = 30
 
     textTapsSpd = display.newText( uiGroup, tableConfig.tapsTotal, 160, panelPosY, panelFont, 36 )
     textTapsSpd:setFillColor( 0, 0, 0 )
@@ -112,29 +141,32 @@ function scene:create( event )
     textBelieve = display.newText( uiGroup, tableConfig.tapsTotal, 480, panelPosY, panelFont, 36 )
     textBelieve:setFillColor( 0, 0, 0 )
 
-    textLoadSpd = display.newText( uiGroup, tableConfig.tapsTotal, 820, panelPosY, panelFont, 36 )
+    textLoadSpd = display.newText( uiGroup, tableConfig.tapsTotal, 800, panelPosY, panelFont, 36 )
     textLoadSpd:setFillColor( 0, 0, 0 )
 
-    textLoadTot = display.newText( uiGroup, tableConfig.tapsTotal, 1150, panelPosY, panelFont, 36 )
+    textLoadTot = display.newText( uiGroup, tableConfig.tapsTotal, 1120, panelPosY, panelFont, 36 )
     textLoadTot:setFillColor( 0, 0, 0 )
 
-    local shopKey = display.newImageRect( mainGroup, "assets/001/shop.png", 120, 60 )
-    shopKey.x = 60
-    shopKey.y = 130
+    local shopKey = display.newImageRect( mainGroup, "assets/001/shop.png", 320, 150 )
+    shopKey.x = 160
+    shopKey.y = 240
+    shopKey:addEventListener( "tap", gotoShop )
 
-    local statsKey = display.newImageRect( mainGroup, "assets/001/stats.png", 120, 60 )
-    statsKey.x = 60
-    statsKey.y = 190
+    local statsKey = display.newImageRect( mainGroup, "assets/001/stats.png", 320, 150 )
+    statsKey.x = 160
+    statsKey.y = 390
+    statsKey:addEventListener( "tap", gotoStats )
 
-    local cheatsKey = display.newImageRect( mainGroup, "assets/001/cheats.png", 120, 60 )
-    cheatsKey.x = 60
-    cheatsKey.y = 250
+    local cheatsKey = display.newImageRect( mainGroup, "assets/001/cheats.png", 320, 150 )
+    cheatsKey.x = 160
+    cheatsKey.y = 540
+    cheatsKey:addEventListener( "tap", gotoCheats )
 
-    local tapKey = display.newImageRect( mainGroup, "assets/001/tapkey.png", 360, 360 )
+    local tapKey = display.newImageRect( mainGroup, "assets/001/tapkey.png", 400, 400 )
     tapKey.x = display.contentCenterX
     tapKey.y = display.contentCenterY
+    tapKey:addEventListener( "tap", tapSingle )
 end
-
 
 -- show()
 function scene:show( event )
@@ -147,7 +179,7 @@ function scene:show( event )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs when the scene is entirely on screen
-
+        gameLoopTimer = timer.performWithDelay( 100, gameLoop, 0 )
 	end
 end
 
