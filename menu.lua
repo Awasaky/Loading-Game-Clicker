@@ -44,7 +44,11 @@ function scene:create( event )
 	
 	buttonPlay:addEventListener( "tap", gotoGame )
 	buttonAbout:addEventListener( "tap", gotoAbout )
-	composer.gotoScene( "game" ) -- delete after final objects layout
+
+	---------------------------------------
+	-- delete after final objects layout --
+	---------------------------------------
+	composer.gotoScene( "game" )
 end
 
 
