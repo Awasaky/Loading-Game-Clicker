@@ -46,12 +46,14 @@ local textLoadTot
 -------------------------------------------------------------------------------
 -- Make table for check taps per last 1 second, and start index of taps
 local lastTapsCount = 0
-local tapsPlayerNext = 0
+local tapsPlayerNext = 1
 local tapsPlayerCheck = {}
 
 -- Adding to table zeros for a start
 for i = 1, gameLoopCycles do
+
     table.insert( tapsPlayerCheck, 0 )
+
 end
 
 -------------------------------------------------------------------------------
@@ -117,18 +119,24 @@ end
 -- Interface windows change
 -------------------------------------------------------------------------------
 local function gotoShop()
+
     configSave()
     print('gotoShop')
+
 end
 
 local function gotoStats()
+
 	configSave()
     print('gotoStats')
+
 end
 
 local function gotoCheats()
+
 	configSave()
     print('gotoCheats')
+
 end
 
 -------------------------------------------------------------------------------
@@ -138,6 +146,7 @@ end
 local function tapSingle()
     
     configTable.tapsPlayer = configTable.tapsPlayer + 1
+    configTable.loadTotal = configTable.loadTotal + configTable.believe
 
 end
 
@@ -169,13 +178,13 @@ end
 --Every gameLoopDelay launch function
 local function gameLoop()
 
-    -- Counting of clicks per cycle
-    tapsPlayerNext = tapsPlayerNext + 1
-    
     if tapsPlayerNext > gameLoopCycles then
+
         tapsPlayerNext = 1
+        
         -- Update loadTotal
         configTable.loadTotal = configTable.loadTotal + configTable.loadSpeed
+
     end
 
     -- Taps per last cycle
@@ -184,7 +193,9 @@ local function gameLoop()
     local tapsSpd = 0
 
     for i = 1, gameLoopCycles do
+
         tapsSpd = tapsSpd + tapsPlayerCheck[i]
+
     end
 
     tapsPlayerPrev = configTable.tapsPlayer
@@ -196,10 +207,13 @@ local function gameLoop()
 
     lastTapsCount = configTable.tapsPlayer
 
+    -- Counting of clicks per cycle
+    tapsPlayerNext = tapsPlayerNext + 1
+
 end
 
 -------------------------------------------------------------------------------
--- Keyboard Listener to reset game
+-- Debug: Keyboard Listener to reset game
 -------------------------------------------------------------------------------
 
 local function onKeyEvent( event )
@@ -291,6 +305,9 @@ function scene:create( event )
 
     tapKey:addEventListener( "tap", tapSingle )
     Runtime:addEventListener( "key", onKeyEvent )
+
+    gameLoopTimer = timer.performWithDelay( gameLoopDelay, gameLoop, 0 )
+
 end
 
 -- show()
@@ -304,10 +321,10 @@ function scene:show( event )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs when the scene is entirely on screen
-        gameLoopTimer = timer.performWithDelay( gameLoopDelay, gameLoop, 0 ) -- x2 delay give a more realistic behavior, why?
-	end
-end
 
+	end
+
+end
 
 -- hide()
 function scene:hide( event )
@@ -318,7 +335,6 @@ function scene:hide( event )
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
         timer.cancel( gameLoopTimer )
-        timer.cancel( loadDataTimer )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
@@ -328,7 +344,6 @@ function scene:hide( event )
 	end
 end
 
-
 -- destroy()
 function scene:destroy( event )
 
@@ -336,7 +351,6 @@ function scene:destroy( event )
 	-- Code here runs prior to the removal of scene's view
 	configSave()
 end
-
 
 -- -----------------------------------------------------------------------------------
 -- Scene event function listeners
