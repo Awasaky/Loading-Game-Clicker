@@ -22,6 +22,7 @@ local scene = composer.newScene()
 local gameLoopTimer -- Use to hold timer to call gameLoop
 local gameLoopDelay = 100 -- time between gameLoop calls
 local gameLoopCycles = math.floor( 1000 / gameLoopDelay ) -- gameLoop cycles per second
+local oneLoopUpdate = 1 / gameLoopCycles
 
 --Screen groups
 local backGroup
@@ -36,80 +37,71 @@ local panelFont = native.newFont( "Arial Black" )
 local panelPosY = 40
 
 -- UI output text strings
-local textTapsSpd
+local textLoadTot -- Load total moved to left side of screen
 local textBelieve
 local textLoadSpd
-local textLoadTot
+local textLoadData -- Taps counter changed to Load Data counter
 
--------------------------------------------------------------------------------
--- Taps speed check
--------------------------------------------------------------------------------
--- Make table for check taps per last 1 second, and start index of taps
-local lastTapsCount = 0
-local tapsPlayerNext = 1
-local tapsPlayerCheck = {}
-
--- Adding to table zeros for a start
-for i = 1, gameLoopCycles do
-
-    table.insert( tapsPlayerCheck, 0 )
-
-end
+-- Speed Measures
+local spdMeasure = { 'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb' }
 
 -------------------------------------------------------------------------------
 -- Сonfiguration files operations
 -------------------------------------------------------------------------------
--- Link to config file
-local configPath = system.pathForFile( "lgcconfig.json", system.DocumentsDirectory )
-
 -- Configuration table
-local configTable = {}
+local cfg = {}
 
--- Saving configuration
-local function configSave()
+-- Link to cfg file
+cfgPath = system.pathForFile( "lgccfg.json", system.DocumentsDirectory )
+
+-- Saving cfguration
+local function cfgSave ()
+
+    local cfgFile = io.open( cfgPath, "w" )
  
-    local configFile = io.open( configPath, "w" )
- 
-    if configFile then
-        configFile:write( json.encode( configTable ) )
-        io.close( configFile )
+    if cfgFile then
+
+    	cfg.lastTimeSave = os.time()
+        cfgFile:write( json.encode( cfg ) )
+        io.close( cfgFile )
+
     end
 
 end
 
--- Reset and save configuration
-local function configReset()
-    
-    configTable = { 
-    	loadSpeed = 1, -- Bytes loading per second. in beginning = 1 b/s
-    	tapsPlayer = 0, -- Directly players taps. in beginning = 0
-    	tapsTotal = 0, -- All taps with helpers. in beginning = 0
-    	believe = 1, -- Bytes give 1 taps per second. in beginning = 1 b/s
-    	speedMeasure = 0, -- Helper to make easier change measure count: 0 - bytes, 8 - yotabytes
-    	loadTotal = 0, -- Count of all loaded data (with helpers)
-    	lastTimeSave = os.time() -- Date of last save - use to make viruses
-    }
- 	
- 	configSave()
+-- load defaut data and save cfguration
+local function cfgReset ()
+
+	local cfgFile = io.open( "start.json", "r" )
+
+    if cfgFile then
+
+        local contents = cfgFile:read( "*a" )
+        io.close( cfgFile )
+        cfg = json.decode( contents )
+        cfg.lastTimeSave = os.time() -- Date of last save - use to make viruses
+        cfgSave()
+
+    end
 
 end
 
 -- Load Configuration, if can't - reset
-local function configLoad()
+ local function cfgLoad()
  
-	local configFile = io.open( configPath, "r" )
+	local cfgFile = io.open( cfgPath, "r" )
 
-    if configFile then
+    if cfgFile then
 
-        local contents = configFile:read( "*a" )
-        io.close( configFile )
-        configTable = json.decode( contents )
+        local contents = cfgFile:read( "*a" )
+        io.close( cfgFile )
+        cfg = json.decode( contents )
 
     end
  
-    if ( configTable == nil or configTable.loadTotal == nil ) then
+    if ( cfg == nil or cfg.loadTotal == nil ) then
 
-    	configReset()
+    	cfgReset()
 
     end
     
@@ -120,21 +112,21 @@ end
 -------------------------------------------------------------------------------
 local function gotoShop()
 
-    configSave()
+    cfgSave()
     print('gotoShop')
 
 end
 
 local function gotoStats()
 
-	configSave()
+	cfgSave()
     print('gotoStats')
 
 end
 
 local function gotoCheats()
 
-	configSave()
+	cfgSave()
     print('gotoCheats')
 
 end
@@ -142,73 +134,59 @@ end
 -------------------------------------------------------------------------------
 -- In-game logic
 -------------------------------------------------------------------------------
--- Single Tap
-local function tapSingle()
-    
-    configTable.tapsPlayer = configTable.tapsPlayer + 1
-    configTable.loadTotal = configTable.loadTotal + configTable.believe
+
+-- round number to base
+local function roundTo( roundNumber, roundBase )
+
+	return math.floor( roundNumber * 10 ^ roundBase + 0.5 ) * 0.1 ^ roundBase
 
 end
 
--- This function called from game loop to return actual measure in game
-local function loadSpeedMeasure()
+-- return difference between 2 measures
+local function measureDiff( measureStart, measureEnd )
 
-    if ( configTable.speedMeasure == 1 ) then
-        return 'Kb'
-    elseif ( configTable.speedMeasure == 2 ) then
-        return 'Mb'
-    elseif ( configTable.speedMeasure == 3 ) then
-        return 'Gb'
-    elseif ( configTable.speedMeasure == 4 ) then
-        return 'Tb'
-    elseif ( configTable.speedMeasure == 5 ) then
-        return 'Pb'
-    elseif ( configTable.speedMeasure == 6 ) then
-        return 'Eb'
-    elseif ( configTable.speedMeasure == 7 ) then
-        return 'Zb'
-    elseif ( configTable.speedMeasure == 8 ) then
-        return 'Yb'
-    end
+	return 10 ^ ( 3 * ( measureStart - measureEnd ) )
 
-    return 'b' -- if enter unknown return bytes
+end
+
+local function tapSingle()
+    
+    cfg.tapsPlayer = cfg.tapsPlayer + 1
+    cfg.tapsTotal = cfg.tapsTotal + 1
+    cfg.loadTotal = cfg.loadTotal + cfg.believe * measureDiff ( cfg.believeMeasure, cfg.loadTotalMeasure )
 
 end
 
 --Every gameLoopDelay launch function
 local function gameLoop()
 
-    if tapsPlayerNext > gameLoopCycles then
+	-- Update Load Total
+    cfg.loadTotal = cfg.loadTotal + cfg.loadSpeed * oneLoopUpdate  * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
 
-        tapsPlayerNext = 1
-        
-        -- Update loadTotal
-        configTable.loadTotal = configTable.loadTotal + configTable.loadSpeed
+    -- Update UI
+    textLoadTot.text = roundTo( cfg.loadTotal, 4 ) .. ' ' .. spdMeasure[cfg.loadTotalMeasure]
+    textBelieve.text = roundTo( cfg.believe, 4 ) .. ' ' .. spdMeasure[cfg.believeMeasure]
+    textLoadSpd.text = roundTo( cfg.loadSpeed, 4 ) .. ' ' .. spdMeasure[cfg.loadSpeedMeasure] .. '/s'
 
+end
+
+-- When any of indicators be too much big, then it be reduced and updated measure
+local function measureUpdate()
+
+    if cfg.loadTotal > 10000 then
+    	cfg.loadTotalMeasure = cfg.loadTotalMeasure + 1
+    	cfg.loadTotal = cfg.loadTotal * 0.001
     end
 
-    -- Taps per last cycle
-    tapsPlayerCheck[tapsPlayerNext] = configTable.tapsPlayer - lastTapsCount
-
-    local tapsSpd = 0
-
-    for i = 1, gameLoopCycles do
-
-        tapsSpd = tapsSpd + tapsPlayerCheck[i]
-
+    if cfg.believe > 10000 then
+    	cfg.believeMeasure = cfg.believeMeasure + 1
+    	cfg.believe = cfg.believe * 0.001
     end
 
-    tapsPlayerPrev = configTable.tapsPlayer
-
-    textTapsSpd.text = tapsSpd
-    textBelieve.text = configTable.believe .. ' ' .. loadSpeedMeasure()
-    textLoadSpd.text = configTable.loadSpeed .. ' ' .. loadSpeedMeasure() .. '/s'
-    textLoadTot.text = configTable.loadTotal .. ' ' .. loadSpeedMeasure()
-
-    lastTapsCount = configTable.tapsPlayer
-
-    -- Counting of clicks per cycle
-    tapsPlayerNext = tapsPlayerNext + 1
+    if cfg.loadSpeed > 10000 then
+    	cfg.loadSpeedMeasure = cfg.loadSpeedMeasure + 1
+    	cfg.loadSpeed = cfg.loadSpeed * 0.001
+    end
 
 end
 
@@ -222,7 +200,7 @@ local function onKeyEvent( event )
     local isSPressed = ( event.keyName == 'p' and event.phase == 'down' )
 
     if (  isSPressed ) then
-        configReset()
+        cfgReset()
     end
  
     -- If the "back" key was pressed on Android or Windows Phone, prevent it from backing out of the app
@@ -250,7 +228,7 @@ function scene:create( event )
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 	
     --Load Game
-    configLoad()
+    cfgLoad()
 
 	-- Set up display groups
 	backGroup = display.newGroup()  -- Display group for the background image
@@ -272,17 +250,17 @@ function scene:create( event )
     topbar.x = display.contentCenterX
     topbar.y = 30
 
-    textTapsSpd = display.newText( uiGroup, configTable.tapsTotal, 160, panelPosY, panelFont, 36 )
-    textTapsSpd:setFillColor( 0, 0, 0 )
+    textLoadTot = display.newText( uiGroup, cfg.tapsTotal, 160, panelPosY, panelFont, 36 ) -- Loading Total moved
+    textLoadTot:setFillColor( 0, 0, 0 )
 
-    textBelieve = display.newText( uiGroup, configTable.tapsTotal, 480, panelPosY, panelFont, 36 )
+    textBelieve = display.newText( uiGroup, cfg.tapsTotal, 480, panelPosY, panelFont, 36 )
     textBelieve:setFillColor( 0, 0, 0 )
 
-    textLoadSpd = display.newText( uiGroup, configTable.loadSpeed, 800, panelPosY, panelFont, 36 )
+    textLoadSpd = display.newText( uiGroup, cfg.loadSpeed, 800, panelPosY, panelFont, 36 )
     textLoadSpd:setFillColor( 0, 0, 0 )
 
-    textLoadTot = display.newText( uiGroup, configTable.tapsTotal, 1120, panelPosY, panelFont, 36 )
-    textLoadTot:setFillColor( 0, 0, 0 )
+    textLoadData = display.newText( uiGroup, cfg.loadData, 1120, panelPosY, panelFont, 36 )
+    textLoadData:setFillColor( 0, 0, 0 )
 
     local shopKey = display.newImageRect( mainGroup, "assets/001/shop.png", 320, 150 )
     shopKey.x = 160
@@ -302,11 +280,13 @@ function scene:create( event )
     local tapKey = display.newImageRect( mainGroup, "assets/001/tapkey.png", 400, 400 )
     tapKey.x = display.contentCenterX
     tapKey.y = display.contentCenterY
-
     tapKey:addEventListener( "tap", tapSingle )
-    Runtime:addEventListener( "key", onKeyEvent )
+
+    Runtime:addEventListener( "key", onKeyEvent ) -- to debug/ later need to be removed
 
     gameLoopTimer = timer.performWithDelay( gameLoopDelay, gameLoop, 0 )
+
+    measureTimer = timer.performWithDelay( 30000, measureUpdate, 0 )
 
 end
 
@@ -349,7 +329,7 @@ function scene:destroy( event )
 
 	local sceneGroup = self.view
 	-- Code here runs prior to the removal of scene's view
-	configSave()
+	cfgSave()
 end
 
 -- -----------------------------------------------------------------------------------
