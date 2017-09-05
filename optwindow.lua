@@ -8,12 +8,12 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
-local function gotoGame()
-	composer.gotoScene( "game", { time=800, effect="crossFade" } )
+local function gotoMenu()
+	composer.gotoScene( "menu", { time=800, effect="crossFade" } )
 end
 
-local function gotoAbout()
-	composer.gotoScene( "about", { time=800, effect="crossFade" } )
+local function gotoGame()
+	composer.gotoScene( "game", { time=800, effect="crossFade" } )
 end
 
 -- -----------------------------------------------------------------------------------
@@ -26,25 +26,19 @@ function scene:create( event )
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 	
-	local background = display.newImageRect( sceneGroup, "menu/background.png", 1280, 720 )
+	local background = display.newImageRect( sceneGroup, "assets/optionswindow.png", 640, 360 )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
 
-	local title = display.newImageRect( sceneGroup, "menu/title.png", 652, 94 )
-	title.x = display.contentCenterX - 250
-	title.y = display.contentCenterY + 300
-
-	local buttonPlay = display.newImageRect( sceneGroup, "menu/buttonPlay.png", 348, 102 )
-	buttonPlay.x = 1050
-	buttonPlay.y = 100
+    local keyMainMenu = display.newRect( sceneGroup, display.contentCenterX, 295, 640, 480 )
+    keyMainMenu.alpha = 1
+    keyMainMenu.isHitTestable = true
+	keyMainMenu:addEventListener( "tap", gotoMenu )
 	
-	local buttonAbout = display.newImageRect( sceneGroup, "menu/buttonAbout.png", 348, 102 )
-	buttonAbout.x = 1050
-	buttonAbout.y = 220
-	
-	buttonPlay:addEventListener( "tap", gotoGame )
-	buttonAbout:addEventListener( "tap", gotoAbout )
-
+	local keyReturn = display.newRect( sceneGroup, 0, 0, 640, 480 )
+    keyMainMenu.alpha = 1
+    keyMainMenu.isHitTestable = true
+	keyMainMenu:addEventListener( "tap", gotoMenu )
 end
 
 
