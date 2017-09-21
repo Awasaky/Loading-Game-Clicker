@@ -5,9 +5,6 @@
 --
 -- -----------------------------------------------------------------------------------
 
--- JSON support
-local json = require( "json" )
-
 -- Load and Save module
 local LoadSave = require( "loadsave" )
 
@@ -17,10 +14,16 @@ local composer = require( "composer" )
 -- Сomposer utility variable
 local scene = composer.newScene()
 
+-- JSON support
+local json = require( "json" )
+
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
+
+-- Initial random
+math.randomseed( os.time() )
 
 -- Variables to gameloop works
 local gameLoopTimer -- Use to hold timer to call gameLoop
@@ -33,6 +36,7 @@ local backGroup
 local mainGroup
 local uiGroup
 
+-- Screen keys
 local optKey
 local shopKey
 local statsKey
@@ -52,6 +56,16 @@ local textBelieve
 local textLoadSpd
 local textLoadData -- Taps counter changed to Load Data counter
 
+-- Comments table
+local Comment = {
+    counter = 0,
+    arr = {},
+    str1 = {},
+    str2 = {},
+    str3 = {},
+    next = 1
+}
+
 -- Speed Measures
 local spdMeasure = { 'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb' }
 
@@ -70,27 +84,25 @@ cfgPath = system.pathForFile( "lgccfg.json", system.DocumentsDirectory )
 
 local function gotoOptions()
 
-    print('gotoOptions')
     composer.gotoScene( "optwindow" )
 
 end
 
 local function gotoShop()
 
-    print('gotoShop')
+    composer.gotoScene( "windowshop" )
 
 end
 
 local function gotoStats()
 
-    print('gotoStats')
+    composer.gotoScene( "windowstat" )
 
 end
 
 local function gotoCheats()
 
-	LoadSave.cfgSave( cfg, cfgPath )
-    print('gotoCheats')
+    composer.gotoScene( "windowcheat" )
 
 end
 
@@ -120,11 +132,54 @@ local function tapSingle()
 
 end
 
+--randomly takes strings from table and swap them
+commentRnd = function( commentTable )
+
+    for i = 1, #commentTable do
+
+        local v = math.random(#commentTable)
+        commentTable[i], commentTable[v] = commentTable[v], commentTable[i]
+
+    end
+
+    return commentTable
+
+end
+
+-- if current taps more than check value - update comments
+local function checkUpdateComments( currentTaps, checkTaps )
+    
+    if ( currentTaps > ( checkTaps + 30 ) ) then
+
+        Comment.str1.text = Comment.str2.text
+        Comment.str2.text = Comment.str3.text
+        Comment.str3.text = Comment.arr[Comment.next]
+        Comment.next = Comment.next + 1
+        
+        if ( Comment.next > #Comment.arr ) then
+
+            Comment.next = 1
+
+        end
+
+        return currentTaps
+
+    else
+
+        return checkTaps
+
+    end
+
+end
+
 -- Every gameLoopDelay launch function
 local function gameLoop()
 
 	-- Update Load Total
-    cfg.loadTotal = cfg.loadTotal + cfg.loadSpeed * oneLoopUpdate  * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
+    cfg.loadTotal = cfg.loadTotal + cfg.loadSpeed * oneLoopUpdate * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
+
+    -- Every loop check how much taps does player, and if enough - add new comment
+    Comment.counter = checkUpdateComments(cfg.tapsTotal, Comment.counter)
 
     -- Update UI
     textLoadTot.text = roundTo( cfg.loadTotal, 4 ) .. ' ' .. spdMeasure[cfg.loadTotalMeasure]
@@ -189,9 +244,37 @@ function scene:create( event )
 
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
+
+    -- Reset if set this in options
+    if ( composer.getVariable( "gameReset" ) ) then
+        composer.setVariable( "gameReset", false )
+        cfg = LoadSave.cfgReset( cfg, cfgPath )
+    end
 	
     --Load Game
     cfg = LoadSave.cfgLoad( cfg, cfgPath )
+
+    Comment.counter = cfg.tapsTotal
+
+    -- Loading comments
+    commentLoad = function( commentTable )
+
+        local commentFile = io.open( "cmtanother.json", "r" )
+
+        if commentFile then
+
+            local contents = commentFile:read( "*a" )
+            io.close( commentFile )
+            commentTable = json.decode( contents )
+
+        end
+
+        return commentTable
+
+    end
+
+    Comment.arr = commentLoad(Comment.arr)
+    Comment.arr = commentRnd(Comment.arr)
 
 	-- Set up display groups
 	backGroup = display.newGroup()  -- Display group for the background image
@@ -207,6 +290,21 @@ function scene:create( event )
     local background = display.newImageRect( backGroup, "assets/001/back.png", 1280, 720 )
     background.x = display.contentCenterX
     background.y = display.contentCenterY
+
+    Comment.str1 = display.newText( backGroup, '', 10, 60, panelFont, 30 )
+    Comment.str1:setFillColor( 0, 0, 0 )
+    Comment.str1.anchorX = 0
+    Comment.str1.anchorY = 0
+
+    Comment.str2 = display.newText( backGroup, '', 10, 90, panelFont, 30 )
+    Comment.str2:setFillColor( 0, 0, 0 )
+    Comment.str2.anchorX = 0
+    Comment.str2.anchorY = 0
+
+    Comment.str3 = display.newText( backGroup, '', 10, 120, panelFont, 30 )
+    Comment.str3:setFillColor( 0, 0, 0 )
+    Comment.str3.anchorX = 0
+    Comment.str3.anchorY = 0
 
     -- top bar, centered and also all texts ready to refresh
     local topbar = display.newImageRect( backGroup, "assets/001/topbar.png", 1280, 60 )

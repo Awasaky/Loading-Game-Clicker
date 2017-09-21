@@ -18,21 +18,23 @@ LoadSave.cfgSave = function( cfgTable, cfgSavePath )
 end
 
 -- load defaut data and save cfguration
-LoadSave.cfgReset = function( cfgTable, cfgSavePath )
+LoadSave.cfgReset = function( defTable, defSavePath )
 
-	local cfgFile = io.open( "start.json", "r" )
+	local defPath = system.pathForFile( "start.json", system.ResourceDirectory )
 
-    if cfgFile then
+    local defFile = io.open( defPath, "r" )
 
-        local contents = cfgFile:read( "*a" )
-        io.close( cfgFile )
-        cfgTable = json.decode( contents )
-        cfgTable.lastTimeSave = os.time() -- Date of last save - use to make viruses
-        LoadSave.cfgSave( cfgTable, cfgSavePath )
+    if defFile then
+
+        local contents = defFile:read( "*a" )
+        io.close( defFile )
+        defTable = json.decode( contents )
+        defTable.lastTimeSave = os.time() -- Date of last save - use to make viruses
+        LoadSave.cfgSave( defTable, defSavePath )
 
     end
 
-    return cfgTable
+    return defTable
 
 end
 
@@ -48,10 +50,10 @@ LoadSave.cfgLoad = function( cfgTable, cfgSavePath )
         cfgTable = json.decode( contents )
 
     end
- 
+    
     if ( cfgTable == nil or cfgTable.loadTotal == nil ) then
 
-    	LoadSave.cfgReset( cfgSavePath )
+    	cfgTable = LoadSave.cfgReset( cfgTable, cfgSavePath )
 
     end
 

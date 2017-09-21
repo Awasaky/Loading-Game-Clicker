@@ -8,33 +8,18 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
-local function gotoMenu()
+composer.setVariable( 'questionYesNo', false )
 
-	composer.gotoScene( "menu", { time=800, effect="crossFade" } )
+function gotoYes()
 
-end
-
--- show modal window yes/no
-local function gotoReset()
-
-	composer.showOverlay( 'ynwindow', { isModal = true } )
+	composer.setVariable( 'questionYesNo', true )
+	composer.hideOverlay()
 
 end
 
--- this function is callback after yes/no window
-function scene:checkyn()
+function gotoNo()
 
-	-- questionYesNo - return true if user select yes
-	if ( composer.getVariable( 'questionYesNo') == true ) then
-		composer.setVariable( 'gameReset', true ) -- this variable checked in game.lua
-		composer.gotoScene( "game", { time=800, effect="crossFade" } )
-	end
-
-end
-
-local function gotoGame()
-
-	composer.gotoScene( "game", { time=800, effect="crossFade" } )
+	composer.hideOverlay()
 
 end
 
@@ -47,25 +32,20 @@ function scene:create( event )
 
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
-	
-	local background = display.newImageRect( sceneGroup, "assets/optwindow.png", 640, 360 )
+
+	local background = display.newImageRect( sceneGroup, "assets/ynwindow.png", 512, 128 )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
 
-    local keyMainMenu = display.newRect( sceneGroup, display.contentCenterX, 295, 640, 50 )
-    keyMainMenu.alpha = 0
-    keyMainMenu.isHitTestable = true
-	keyMainMenu:addEventListener( "tap", gotoMenu )
+    local keyYes = display.newRect( sceneGroup, display.contentCenterX - 116, display.contentCenterY + 36 , 256, 64 )
+    keyYes.alpha = 0
+    keyYes.isHitTestable = true
+	keyYes:addEventListener( "tap", gotoYes )
 
-    local keyResetGame = display.newRect( sceneGroup, display.contentCenterX, 425, 640, 50 )
-    keyResetGame.alpha = 0
-    keyResetGame.isHitTestable = true
-	keyResetGame:addEventListener( "tap", gotoReset )
-	
-	local keyReturn = display.newRect( sceneGroup, display.contentCenterX, 500, 640, 50 )
-    keyReturn.alpha = 0
-    keyReturn.isHitTestable = true
-	keyReturn:addEventListener( "tap", gotoGame )
+    local keyNo = display.newRect( sceneGroup, display.contentCenterX + 134, display.contentCenterY + 36, 256, 64 )
+    keyNo.alpha = 0
+    keyNo.isHitTestable = true
+	keyNo:addEventListener( "tap", gotoNo )
 
 end
 
@@ -83,7 +63,6 @@ function scene:show( event )
 		-- Code here runs when the scene is entirely on screen
 
 	end
-
 end
 
 
@@ -92,17 +71,16 @@ function scene:hide( event )
 
 	local sceneGroup = self.view
 	local phase = event.phase
+	local parent = event.parent  -- Reference to the parent scene object
 
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
-
+		parent:checkyn()
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
 
 	end
-	
 end
-
 
 -- destroy()
 function scene:destroy( event )
