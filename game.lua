@@ -1,17 +1,14 @@
 -- -----------------------------------------------------------------------------------
---
 -- In a first launch, new elements come to screen after players taps
 -- In any another launch, all elements already on screen 
---
 -- -----------------------------------------------------------------------------------
+-- Parts of scene used: create, hide
 
--- Load and Save module
+-- Load and save configuration module
 local LoadSave = require( "loadsave" )
 
 -- Composer support
 local composer = require( "composer" )
-
--- Сomposer utility variable
 local scene = composer.newScene()
 
 -- JSON support
@@ -28,8 +25,7 @@ math.randomseed( os.time() )
 -- Variables to gameloop works
 local gameLoopTimer -- Use to hold timer to call gameLoop
 local gameLoopDelay = 100 -- time between gameLoop calls
-local gameLoopCycles = math.floor( 1000 / gameLoopDelay ) -- gameLoop cycles per second
-local oneLoopUpdate = 1 / gameLoopCycles
+local gameLoopUpdate = 1 / ( math.floor( 1000 / gameLoopDelay ) ) -- milliseconds per one game loop
 
 -- Screen groups
 local backGroup
@@ -37,11 +33,11 @@ local mainGroup
 local uiGroup
 
 -- Screen keys
-local optKey
-local shopKey
-local statsKey
-local cheatsKey
-local tapKey
+local optKey -- key to Options
+local shopKey -- key to Shop
+local statsKey -- key to Stats
+local cheatsKey -- key to Cheats
+local tapKey -- Tap key
 
 -------------------------------------------------------------------------------
 -- UI
@@ -76,7 +72,7 @@ local spdMeasure = { 'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb' }
 local cfg = {}
 
 -- Link to cfg file
-cfgPath = system.pathForFile( "lgccfg.json", system.DocumentsDirectory )
+local cfgPath = system.pathForFile( "lgccfg.json", system.DocumentsDirectory )
 
 -------------------------------------------------------------------------------
 -- Interface windows change
@@ -124,6 +120,7 @@ local function measureDiff( measureStart, measureEnd )
 
 end
 
+--Add every tap progress
 local function tapSingle()
     
     cfg.tapsPlayer = cfg.tapsPlayer + 1
@@ -133,7 +130,7 @@ local function tapSingle()
 end
 
 --randomly takes strings from table and swap them
-commentRnd = function( commentTable )
+local function commentRnd( commentTable )
 
     for i = 1, #commentTable do
 
@@ -148,7 +145,7 @@ end
 
 -- if current taps more than check value - update comments
 local function checkUpdateComments( currentTaps, checkTaps )
-    
+
     if ( currentTaps > ( checkTaps + 30 ) ) then
 
         Comment.str1.text = Comment.str2.text
@@ -172,11 +169,11 @@ local function checkUpdateComments( currentTaps, checkTaps )
 
 end
 
--- Every gameLoopDelay launch function
+-- Every gameLoopDelay do function
 local function gameLoop()
 
 	-- Update Load Total
-    cfg.loadTotal = cfg.loadTotal + cfg.loadSpeed * oneLoopUpdate * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
+    cfg.loadTotal = cfg.loadTotal + cfg.loadSpeed * gameLoopUpdate * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
 
     -- Every loop check how much taps does player, and if enough - add new comment
     Comment.counter = checkUpdateComments(cfg.tapsTotal, Comment.counter)
@@ -192,18 +189,24 @@ end
 local function measureUpdate()
 
     if cfg.loadTotal > 10000 then
+
     	cfg.loadTotalMeasure = cfg.loadTotalMeasure + 1
     	cfg.loadTotal = cfg.loadTotal * 0.001
+
     end
 
     if cfg.believe > 10000 then
+
     	cfg.believeMeasure = cfg.believeMeasure + 1
     	cfg.believe = cfg.believe * 0.001
+
     end
 
     if cfg.loadSpeed > 10000 then
+
     	cfg.loadSpeedMeasure = cfg.loadSpeedMeasure + 1
     	cfg.loadSpeed = cfg.loadSpeed * 0.001
+
     end
 
 end
@@ -218,15 +221,21 @@ local function onKeyEvent( event )
     local isSPressed = ( event.keyName == 'p' and event.phase == 'down' )
 
     if (  isSPressed ) then
+
         cfg = LoadSave.cfgReset( cfg, cfgPath )
+
     end
  
     -- If the "back" key was pressed on Android or Windows Phone, prevent it from backing out of the app
     if ( event.keyName == "back" ) then
+
         local platformName = system.getInfo( "platformName" )
         if ( platformName == "Android" ) or ( platformName == "WinPhone" ) then
+
             return true
+
         end
+
     end
 
     -- IMPORTANT! Return false to indicate that this app is NOT overriding the received key
@@ -247,8 +256,10 @@ function scene:create( event )
 
     -- Reset if set this in options
     if ( composer.getVariable( "gameReset" ) ) then
+
         composer.setVariable( "gameReset", false )
         cfg = LoadSave.cfgReset( cfg, cfgPath )
+
     end
 	
     --Load Game
@@ -257,9 +268,10 @@ function scene:create( event )
     Comment.counter = cfg.tapsTotal
 
     -- Loading comments
-    commentLoad = function( commentTable )
+    local function commentLoad( commentTable )
 
-        local commentFile = io.open( "cmtanother.json", "r" )
+        local commentPath = system.pathForFile( "cmtanother.json", system.ResoursesDirectory )
+        local commentFile = io.open( commentPath, "r" )
 
         if commentFile then
 
@@ -323,36 +335,26 @@ function scene:create( event )
     textLoadData = display.newText( uiGroup, cfg.loadData, 1090, panelPosY, panelFont, 36 )
     textLoadData:setFillColor( 0, 0, 0 )
 
-    local optKey = display.newImageRect( mainGroup, "assets/001/options.png", 60, 60 )
-    optKey.x = 1250
-    optKey.y = 30    
+    -- function to fast make keys in game interface
+    local function initKey(groupScreen, filePng, sizeX, sizeY, placeX, placeY, callback)
 
-    local shopKey = display.newImageRect( mainGroup, "assets/001/shop.png", 320, 150 )
-    shopKey.x = 160
-    shopKey.y = 240
+        local thisKey = display.newImageRect( groupScreen, filePng, sizeX, sizeY )
+        thisKey.x = placeX
+        thisKey.y = placeY
+        thisKey:addEventListener( "tap", callback )
+        return thisKey
 
-    local statsKey = display.newImageRect( mainGroup, "assets/001/stats.png", 320, 150 )
-    statsKey.x = 160
-    statsKey.y = 390
+    end
 
-    local cheatsKey = display.newImageRect( mainGroup, "assets/001/cheats.png", 320, 150 )
-    cheatsKey.x = 160
-    cheatsKey.y = 540
+    local optKey = initKey(mainGroup, "assets/001/options.png", 60, 60, 1250, 30, gotoOptions )
+    local shopKey = initKey(mainGroup, "assets/001/shop.png", 320, 150, 160, 240 , gotoShop )
+    local statsKey = initKey(mainGroup, "assets/001/stats.png", 320, 150, 160, 390, gotoStats )
+    local cheatsKey = initKey( mainGroup, "assets/001/cheats.png", 320, 150, 160, 540, gotoCheats )
+    local tapKey = initKey( mainGroup, "assets/001/tapkey.png", 400, 400, display.contentCenterX, display.contentCenterY, tapSingle )
 
-    local tapKey = display.newImageRect( mainGroup, "assets/001/tapkey.png", 400, 400 )
-    tapKey.x = display.contentCenterX
-    tapKey.y = display.contentCenterY
-    
-    optKey:addEventListener( "tap", gotoOptions )
-    shopKey:addEventListener( "tap", gotoShop )
-    statsKey:addEventListener( "tap", gotoStats )
-    cheatsKey:addEventListener( "tap", gotoCheats )
-    tapKey:addEventListener( "tap", tapSingle )
-
+    --Launch listeners - debug, gameloop, measure check
     Runtime:addEventListener( "key", onKeyEvent ) -- to debug/ later need to be removed
-
     gameLoopTimer = timer.performWithDelay( gameLoopDelay, gameLoop, 0 )
-
     measureTimer = timer.performWithDelay( 30000, measureUpdate, 0 )
 
 end

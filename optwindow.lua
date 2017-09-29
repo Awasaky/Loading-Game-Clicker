@@ -1,6 +1,7 @@
+--Used only scene:create function
 
+-- Composer support
 local composer = require( "composer" )
-
 local scene = composer.newScene()
 
 -- -----------------------------------------------------------------------------------
@@ -8,6 +9,7 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
+-- return to Main Menu
 local function gotoMenu()
 
 	composer.gotoScene( "menu", { time=800, effect="crossFade" } )
@@ -21,10 +23,10 @@ local function gotoReset()
 
 end
 
--- this function is callback after yes/no window
+-- this function is child callback after yes/no window
 function scene:checkyn()
 
-	-- questionYesNo - return true if user select yes
+	-- questionYesNo - true if user select yes
 	if ( composer.getVariable( 'questionYesNo') == true ) then
 		composer.setVariable( 'gameReset', true ) -- this variable checked in game.lua
 		composer.gotoScene( "game", { time=800, effect="crossFade" } )
@@ -32,6 +34,7 @@ function scene:checkyn()
 
 end
 
+-- return to Game
 local function gotoGame()
 
 	composer.gotoScene( "game", { time=800, effect="crossFade" } )

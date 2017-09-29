@@ -1,8 +1,12 @@
+-- Configuration operations functions
+
+-- JSON support
 local json = require( "json" )
 
+-- Main collectiton
 local LoadSave = {}
 
--- Saving cfguration
+-- Saving confguration
 LoadSave.cfgSave = function( cfgTable, cfgSavePath )
 
     local cfgFile = io.open( cfgSavePath, "w" )
@@ -13,11 +17,15 @@ LoadSave.cfgSave = function( cfgTable, cfgSavePath )
         cfgFile:write( json.encode( cfgTable ) )
         io.close( cfgFile )
 
+    else
+
+        print( 'cfgSave unsuccess' )
+
     end
 
 end
 
--- load defaut data and save cfguration
+-- load defaut data and save confguration
 LoadSave.cfgReset = function( defTable, defSavePath )
 
 	local defPath = system.pathForFile( "start.json", system.ResourceDirectory )
@@ -32,13 +40,17 @@ LoadSave.cfgReset = function( defTable, defSavePath )
         defTable.lastTimeSave = os.time() -- Date of last save - use to make viruses
         LoadSave.cfgSave( defTable, defSavePath )
 
+    else
+        
+        print( 'cfgReset unsuccess' )
+
     end
 
     return defTable
 
 end
 
--- Load Configuration, if can't - reset
+-- Load confguration, if can't - reset
 LoadSave.cfgLoad = function( cfgTable, cfgSavePath )
 
 	local cfgFile = io.open( cfgSavePath, "r" )
@@ -49,10 +61,8 @@ LoadSave.cfgLoad = function( cfgTable, cfgSavePath )
         io.close( cfgFile )
         cfgTable = json.decode( contents )
 
-    end
-    
-    if ( cfgTable == nil or cfgTable.loadTotal == nil ) then
-
+    else
+        
     	cfgTable = LoadSave.cfgReset( cfgTable, cfgSavePath )
 
     end

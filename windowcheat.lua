@@ -1,6 +1,6 @@
+-- This scene is underconsruction
 
 local composer = require( "composer" )
-
 local scene = composer.newScene()
 
 -- -----------------------------------------------------------------------------------

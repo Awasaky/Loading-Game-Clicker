@@ -1,6 +1,8 @@
+-- Used scene events: create and hide+will also 2 functions created before show scene
 
+
+-- Composer support
 local composer = require( "composer" )
-
 local scene = composer.newScene()
 
 -- -----------------------------------------------------------------------------------
@@ -8,6 +10,7 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
+-- Clean composer variable to check what a key pressed in modal window
 composer.setVariable( 'questionYesNo', false )
 
 function gotoYes()
@@ -36,6 +39,8 @@ function scene:create( event )
 	local background = display.newImageRect( sceneGroup, "assets/ynwindow.png", 512, 128 )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
+
+	-- Invisible rectangle to press Yes or No
 
     local keyYes = display.newRect( sceneGroup, display.contentCenterX - 116, display.contentCenterY + 36 , 256, 64 )
     keyYes.alpha = 0
@@ -75,7 +80,12 @@ function scene:hide( event )
 
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
+		
+		----------------------------------------------
+		-- Calls checkyn function inside Parent scene
+		----------------------------------------------
 		parent:checkyn()
+
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
 

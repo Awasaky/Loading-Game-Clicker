@@ -1,6 +1,8 @@
 
-local composer = require( "composer" )
+-- Scene used parts: create
 
+-- Composer support
+local composer = require( "composer" )
 local scene = composer.newScene()
 
 -- -----------------------------------------------------------------------------------
@@ -8,8 +10,13 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
+local usedFont = native.newFont( "Arial Black" )
 
+local function gotoReturn()
 
+	composer.gotoScene( "menu", { time=800, effect="crossFade" } )
+
+end
 
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
@@ -20,6 +27,37 @@ function scene:create( event )
 
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
+
+	-- Background same as Menu
+	local background = display.newImageRect( sceneGroup, "menu/background.png", 1280, 720 )
+	background.x = display.contentCenterX
+	background.y = display.contentCenterY
+
+	-- Big string About
+	local aboutText = display.newText( sceneGroup, 'ABOUT', display.contentCenterX, 50, usedFont, 56 )
+    aboutText:setFillColor( 0, 0, 0 )
+
+	-- Company name string
+	local companyName = display.newText( {
+	    parent = sceneGroup,
+	    text = "Who cares about company name\nsoftware",     
+	    x = display.contentCenterX,
+	    y = 200,
+	    font = usedFont,   
+	    fontSize = 48,
+	    align = "center"
+	} )
+    companyName:setFillColor( 0, 0, 0 )
+	
+	-- "Tap anywhere" text
+	local tapAnywhere = display.newText( sceneGroup, 'tap anywhere to continue', display.contentCenterX-200, 690, usedFont, 36 )
+    tapAnywhere:setFillColor( 0, 0, 0 )
+
+    -- Invisible key return to menu
+    local keyReturn = display.newRect( sceneGroup, display.contentCenterX, display.contentCenterY, 1280, 720 )
+    keyReturn.alpha = 0
+    keyReturn.isHitTestable = true
+	keyReturn:addEventListener( "tap", gotoReturn )
 
 end
 

@@ -1,6 +1,6 @@
 
+-- Composer support
 local composer = require( "composer" )
-
 local scene = composer.newScene()
 
 -- -----------------------------------------------------------------------------------
@@ -9,11 +9,15 @@ local scene = composer.newScene()
 -- -----------------------------------------------------------------------------------
 
 local function gotoGame()
+
 	composer.gotoScene( "game", { time=800, effect="crossFade" } )
+
 end
 
 local function gotoAbout()
+
 	composer.gotoScene( "about", { time=800, effect="crossFade" } )
+	
 end
 
 -- -----------------------------------------------------------------------------------
