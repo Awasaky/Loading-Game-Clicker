@@ -1,11 +1,16 @@
 {
-	"loadSpeedMeasure":1,
-	"tapsTotal":0,
-	"tapsPlayer":0,
-	"loadTotal":0,
-	"believeMeasure":1,
-	"believe":1,
-	"loadTotalMeasure":1,
-	"loadData":0,
-	"loadSpeed":1
+	"loadSpeedMeasure":1, /* measure of loading speed */
+	"loadSpeed":1, /* last speed of loading */
+
+	"loadTotalMeasure":1, /* measure of loaded total data */
+	"loadTotal":0, /* how data loaded entire game */
+
+	"believeMeasure":1, /* measure of believe update */
+	"believe":1, /* how data gives one touch */
+
+	"loadDataMeasure":1, /* measure of loading data */
+	"loadData":0, /* measure of loading data */
+
+	"tapsTotal":0, /* how much taps does player and all helpers */
+	"tapsPlayer":0 /* how much taps does player physically */
 }

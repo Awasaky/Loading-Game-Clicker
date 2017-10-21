@@ -50,7 +50,14 @@ function scene:create( event )
     companyName:setFillColor( 0, 0, 0 )
 	
 	-- "Tap anywhere" text
-	local tapAnywhere = display.newText( sceneGroup, 'tap anywhere to continue', display.contentCenterX-200, 690, usedFont, 36 )
+	local tapAnywhere = display.newText( {
+	    parent = sceneGroup,
+	    text = 'tap anywhere to continue',
+	    x = display.contentCenterX-200,
+	    y = 690,
+	    font = usedFont,   
+	    fontSize = 36
+	} )
     tapAnywhere:setFillColor( 0, 0, 0 )
 
     -- Invisible key return to menu

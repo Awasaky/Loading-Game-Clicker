@@ -1,0 +1,57 @@
+{ /* frames is array with sprite objects to load a loadline */
+	"frames":[
+		{
+			"x":0,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":31,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":61,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":91,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":121,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":151,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":181,
+            "y":0,
+            "width":30,
+            "height":30
+        },
+        {
+        	"x":211,
+            "y":0,
+            "width":30,
+            "height":30
+        }
+    ],
+    /* anim is how much frames used to loading icon animation, 
+    next frame is opening bracket,
+    next frame is closing bracket,
+    last frames is animation to one part of loading bar */
+    "anim": 3
+}

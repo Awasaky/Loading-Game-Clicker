@@ -8,7 +8,13 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
+local usedFont = native.newFont( "Arial Black" )
 
+local function gotoGame()
+
+	composer.gotoScene( "game", { time=800, effect="crossFade" } )
+
+end
 
 
 -- -----------------------------------------------------------------------------------
@@ -20,6 +26,28 @@ function scene:create( event )
 
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
+
+	-- Background same as Menu
+	local background = display.newImageRect( sceneGroup, "menu/background.png", 1280, 720 )
+	background.x = display.contentCenterX
+	background.y = display.contentCenterY
+
+	-- "Tap anywhere" text
+	local tapAnywhere = display.newText( {
+	    parent = sceneGroup,
+	    text = 'tap anywhere to return to game',
+	    x = display.contentCenterX-200,
+	    y = 690,
+	    font = usedFont,   
+	    fontSize = 36
+	} )
+    tapAnywhere:setFillColor( 0, 0, 0 )
+
+    -- Invisible key return to menu
+    local keyReturn = display.newRect( sceneGroup, display.contentCenterX, display.contentCenterY, 1280, 720 )
+    keyReturn.alpha = 0
+    keyReturn.isHitTestable = true
+	keyReturn:addEventListener( "tap", gotoGame )
 
 end
 

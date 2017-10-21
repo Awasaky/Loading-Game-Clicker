@@ -52,18 +52,31 @@ local textBelieve
 local textLoadSpd
 local textLoadData -- Taps counter changed to Load Data counter
 
+-- Speed Measures
+local spdMeasure = { 'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb' }
+
 -- Comments table
 local Comment = {
     counter = 0,
-    arr = {},
-    str1 = {},
+    arr = {}, -- comments array
+    str1 = {}, -- string with comments
     str2 = {},
     str3 = {},
-    next = 1
+    next = 1 -- counter of next string in array
 }
 
--- Speed Measures
-local spdMeasure = { 'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb' }
+-- Loading events table
+local loadingEvents = {
+    arr = {}, -- comments array
+    str1 = {}, -- strings what show what is loading now
+    str2 = {},
+    str3 = {},
+    sizeFull = 0, -- full size of loading data
+    sizeLoad = 0, -- how much data loaded now
+    measure = 0, -- measure of load
+    anim = {}, -- animation frames
+    next = 1 -- number of next commentary
+}
 
 -------------------------------------------------------------------------------
 -- Сonfiguration operations
@@ -113,19 +126,22 @@ local function roundTo( roundNumber, roundBase )
 
 end
 
--- Return difference between 2 measures
+-- Return difference multiplier between measures - if Start less than End to 1, then return 0.001 etc
 local function measureDiff( measureStart, measureEnd )
 
 	return 10 ^ ( 3 * ( measureStart - measureEnd ) )
 
 end
 
---Add every tap progress
+--Used after every player screen tap - add to taps player, taps total and add
+-- to load total believed data with difference between believe and load total measures
 local function tapSingle()
     
     cfg.tapsPlayer = cfg.tapsPlayer + 1
     cfg.tapsTotal = cfg.tapsTotal + 1
-    cfg.loadTotal = cfg.loadTotal + cfg.believe * measureDiff ( cfg.believeMeasure, cfg.loadTotalMeasure )
+    cfg.loadTotal = cfg.loadTotal + cfg.believe * measureDiff( cfg.believeMeasure, cfg.loadTotalMeasure )
+    loadingEvents.sizeLoad = loadingEvents.sizeLoad + cfg.believe * measureDiff( cfg.believeMeasure, loadingEvents.measure )
+
 
 end
 
@@ -169,14 +185,57 @@ local function checkUpdateComments( currentTaps, checkTaps )
 
 end
 
+-- Randomly return size of new loading object
+local function sizeLoad( loadSpeed )
+
+    return math.random( loadSpeed * 50, loadSpeed * 75 )
+
+end
+
+-- if totalLoad + loopLoad more than fullsize of loading event - move string up 1 pos
+local function checkUpdateEvents( totalLoad, loopLoad )
+
+    local newSize = totalLoad + loopLoad
+
+    -- check to loaded or not element in 1st line
+    if ( newSize >= loadingEvents.sizeFull ) then
+
+        loadingEvents.sizeFull = sizeLoad( cfg.believe ) -- detect next event load
+        loadingEvents.measure = cfg.believeMeasure -- update measure
+        loadingEvents.str1.text = loadingEvents.str2.text
+        loadingEvents.str2.text = loadingEvents.str3.text
+
+        loadingEvents.next = loadingEvents.next + 1
+        
+        if ( loadingEvents.next > #loadingEvents.arr ) then
+        
+            loadingEvents.next = 1
+        
+        end
+
+        loadingEvents.str3.text = loadingEvents.arr[loadingEvents.next]
+
+        return 0
+
+    else
+
+        return newSize
+
+    end
+
+end
+
 -- Every gameLoopDelay do function
 local function gameLoop()
 
-	-- Update Load Total
-    cfg.loadTotal = cfg.loadTotal + cfg.loadSpeed * gameLoopUpdate * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
+	-- After count loopLoaded - add it to both check values
+    loopLoaded = cfg.loadSpeed * gameLoopUpdate * measureDiff( cfg.loadSpeedMeasure, cfg.loadTotalMeasure )
+    cfg.loadTotal = cfg.loadTotal + loopLoaded
 
     -- Every loop check how much taps does player, and if enough - add new comment
-    Comment.counter = checkUpdateComments(cfg.tapsTotal, Comment.counter)
+    Comment.counter = checkUpdateComments( cfg.tapsTotal, Comment.counter )
+    -- Every loop check how much loaded, and if enough - update load strings
+    loadingEvents.sizeLoad = checkUpdateEvents( loadingEvents.sizeLoad, loopLoaded )
 
     -- Update UI
     textLoadTot.text = roundTo( cfg.loadTotal, 4 ) .. ' ' .. spdMeasure[cfg.loadTotalMeasure]
@@ -254,39 +313,39 @@ function scene:create( event )
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 
-    -- Reset if set this in options
+    -- Reset if option set, else load game
     if ( composer.getVariable( "gameReset" ) ) then
 
         composer.setVariable( "gameReset", false )
         cfg = LoadSave.cfgReset( cfg, cfgPath )
 
-    end
-	
-    --Load Game
-    cfg = LoadSave.cfgLoad( cfg, cfgPath )
+    else
+        
+        cfg = LoadSave.cfgLoad( cfg, cfgPath )
 
+    end
+
+    -- First time counter of comments same that tapsTotal
     Comment.counter = cfg.tapsTotal
 
-    -- Loading comments
-    local function commentLoad( commentTable )
+    -- flll table from file
+    local function commentLoad( filename, commentTable )
 
-        local commentPath = system.pathForFile( "cmtanother.json", system.ResoursesDirectory )
+        local commentPath = system.pathForFile( filename, system.ResoursesDirectory )
         local commentFile = io.open( commentPath, "r" )
-
-        if commentFile then
-
-            local contents = commentFile:read( "*a" )
-            io.close( commentFile )
-            commentTable = json.decode( contents )
-
-        end
-
+        local contents = commentFile:read( "*a" )
+        io.close( commentFile )
+        commentTable = json.decode( contents )
         return commentTable
 
     end
 
-    Comment.arr = commentLoad(Comment.arr)
-    Comment.arr = commentRnd(Comment.arr)
+    --Load commentaries
+    Comment.arr = commentLoad( "cmtanother.json", Comment.arr )
+    Comment.arr = commentRnd( Comment.arr )
+
+    --Load fake loading modules
+    loadingEvents.arr = commentLoad( "subjload.json", loadingEvents.arr )
 
 	-- Set up display groups
 	backGroup = display.newGroup()  -- Display group for the background image
@@ -303,20 +362,34 @@ function scene:create( event )
     background.x = display.contentCenterX
     background.y = display.contentCenterY
 
-    Comment.str1 = display.newText( backGroup, '', 10, 60, panelFont, 30 )
-    Comment.str1:setFillColor( 0, 0, 0 )
-    Comment.str1.anchorX = 0
-    Comment.str1.anchorY = 0
+    --init string, set display group, font, anchor, and color
+    local function makeString( groupScreen, placeX, placeY, fontStr, fontSize, anchorX, anchorY, colorR, colorG, colorB )
 
-    Comment.str2 = display.newText( backGroup, '', 10, 90, panelFont, 30 )
-    Comment.str2:setFillColor( 0, 0, 0 )
-    Comment.str2.anchorX = 0
-    Comment.str2.anchorY = 0
+        local str = display.newText( groupScreen, '', placeX, placeY, fontStr, fontSize )
+        str.anchorX = ( anchorX == nil and 0 or anchorX )
+        str.anchorY = ( anchorY == nil and 0 or anchorY )
+        str:setFillColor( ( colorR == nil and 0 or colorR ), ( colorG == nil and 0 or colorG ), ( colorB == nil and 0 or colorB ) )
 
-    Comment.str3 = display.newText( backGroup, '', 10, 120, panelFont, 30 )
-    Comment.str3:setFillColor( 0, 0, 0 )
-    Comment.str3.anchorX = 0
-    Comment.str3.anchorY = 0
+        return str
+
+    end
+
+    -- Make comments objects
+    Comment.str1 = makeString( backGroup, 10, 60, panelFont, 30 )
+    Comment.str2 = makeString( backGroup, 10, 90, panelFont, 30 )
+    Comment.str3 = makeString( backGroup, 10, 120, panelFont, 30 )
+
+    --Make events strings
+    loadingEvents.str1 = makeString( backGroup, 10, 618, panelFont, 30 )
+    loadingEvents.str2 = makeString( backGroup, 10, 648, panelFont, 30 )
+    loadingEvents.str3 = makeString( backGroup, 10, 678, panelFont, 30 )
+    
+    --Initial actions to fake load events
+    loadingEvents.sizeFull = sizeLoad( cfg.believe )
+    print( loadingEvents.sizeFull )
+    loadingEvents.sizeLoad = 0
+    loadingEvents.measure = cfg.believeMeasure
+    loadingEvents.str3.text = loadingEvents.arr[loadingEvents.next]
 
     -- top bar, centered and also all texts ready to refresh
     local topbar = display.newImageRect( backGroup, "assets/001/topbar.png", 1280, 60 )
@@ -336,12 +409,13 @@ function scene:create( event )
     textLoadData:setFillColor( 0, 0, 0 )
 
     -- function to fast make keys in game interface
-    local function initKey(groupScreen, filePng, sizeX, sizeY, placeX, placeY, callback)
+    local function initKey( groupScreen, filePng, sizeX, sizeY, placeX, placeY, callback )
 
         local thisKey = display.newImageRect( groupScreen, filePng, sizeX, sizeY )
         thisKey.x = placeX
         thisKey.y = placeY
         thisKey:addEventListener( "tap", callback )
+
         return thisKey
 
     end
