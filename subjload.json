@@ -1,8 +1,98 @@
 [
-	"initial keyboard BIOS",
-	"lowres sky textures",
-	"loud sea sounds",
-	"ugly monsters models",
-	"pathetic boss speeches",
-	"silly AI tactics"
+	[
+		"BIOS",
+		"initial",
+		"CPU",
+		"RAM",
+		"legacy",
+		"ROM",
+		"HDD",
+		"SD card",
+		"video chip",
+		"touchscreen",
+		"NFC",
+		"gyroscope",
+		"compas",
+		"GPS",
+		"sound",
+		"keyboard"
+	],
+	[
+		"logotype",
+		"boring publisher",
+		"age rating",
+		"useless anti-pirate shield",
+		"overused graphics framework",
+		"very old sound library",
+		"fake competition reward",
+		"vain game developer"
+	],
+	[
+		"text",
+		"boring beginning dialogue",
+		"empty discussion dialogue ",
+		"talk with clerk dialogue",
+		"replies of country leaders",
+		"internal dialogue with yourself",
+		"finish of level announcement",
+		"part of memories",
+		"warnings from fake friends"
+	],
+	[
+		"background",
+		"sea paradise",
+		"dark city",
+		"forgotten island",
+		"dangerous castle"
+	],
+	[
+		"menu",
+		"top level main",
+		"medium level option",
+		"unknown forgotten debug",
+		"unfair tricks"
+	],
+	[
+		"tactics",
+		"simple attack",
+		"very difficult defence",
+		"AI powered building",
+		"unfair difficulty",
+		"tightening retention"
+	],
+	[
+		"model",
+		"low detail NPC",
+		"medium detail fragile stuff",
+		"high detailed landscape",
+		"horizont viewed island"
+	],
+	[
+		"texture",
+		"",
+		"",
+		"",
+		""
+	],
+	[
+		"sound",
+		"very loud sea",
+		"forest noise",
+		"ugly monster cry",
+		"funny town kids"
+	],
+	[
+		"level",
+		"",
+		"",
+		"",
+		""
+	],
+	[
+		"movie",
+		"",
+		"",
+		"",
+		""
+	]
 ]

@@ -2,17 +2,17 @@
 -- In a first launch, new elements come to screen after players taps
 -- In any another launch, all elements already on screen 
 -- -----------------------------------------------------------------------------------
--- Parts of scene used: create, hide
-
--- Load and save configuration module
-local LoadSave = require( "loadsave" )
 
 -- Composer support
 local composer = require( "composer" )
 local scene = composer.newScene()
+-- Parts of scene used: create, hide
 
 -- JSON support
 local json = require( "json" )
+
+-- Load and save configuration module
+local LoadSave = require( "loadsave" )
 
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
@@ -22,37 +22,63 @@ local json = require( "json" )
 -- Initial random
 math.randomseed( os.time() )
 
+-------------------------------------------------------------------------------
+-- Interface windows change
+-------------------------------------------------------------------------------
+
+    local function gotoOptions()
+        composer.gotoScene( "optwindow" )
+    end
+
+    local function gotoShop()
+        composer.gotoScene( "windowshop" )
+    end
+
+    local function gotoStats()
+        composer.gotoScene( "windowstat" )
+    end
+
+    local function gotoCheats()
+        composer.gotoScene( "windowcheat" )
+    end
+
+-------------------------------------------------------------------------------
+-- UI
+-------------------------------------------------------------------------------
+
+    -- Screen groups
+    local backGroup
+    local mainGroup
+    local uiGroup
+
+    -- Screen keys
+    local optKey -- key to Options
+    local shopKey -- key to Shop
+    local statsKey -- key to Stats
+    local cheatsKey -- key to Cheats
+    local tapKey -- Tap key
+
+    -- UI text settings
+    local panelFont = native.newFont( "Arial Black" )
+    local panelPosY = 40
+
+    -- UI output text strings
+    local textLoadTot -- Load total moved to left side of screen
+    local textBelieve
+    local textLoadSpd
+    local textLoadData -- Taps counter changed to Load Data counter
+
+-------------------------------------------------------------------------------
+-- Ingame Data
+-------------------------------------------------------------------------------
+
 -- Variables to gameloop works
 local gameLoopTimer -- Use to hold timer to call gameLoop
 local gameLoopDelay = 100 -- time between gameLoop calls
 local gameLoopUpdate = 1 / ( math.floor( 1000 / gameLoopDelay ) ) -- milliseconds per one game loop
 
--- Screen groups
-local backGroup
-local mainGroup
-local uiGroup
-
--- Screen keys
-local optKey -- key to Options
-local shopKey -- key to Shop
-local statsKey -- key to Stats
-local cheatsKey -- key to Cheats
-local tapKey -- Tap key
-
--------------------------------------------------------------------------------
--- UI
--------------------------------------------------------------------------------
--- UI text settings
-local panelFont = native.newFont( "Arial Black" )
-local panelPosY = 40
-
--- UI output text strings
-local textLoadTot -- Load total moved to left side of screen
-local textBelieve
-local textLoadSpd
-local textLoadData -- Taps counter changed to Load Data counter
-
 -- Speed Measures
+-- byte, kilobyte, megabyte, gigabyte, terabyte, petabyte, exabyte, zettabyte, yottabyte
 local spdMeasure = { 'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb', 'Eb', 'Zb', 'Yb' }
 
 -- Comments table
@@ -81,6 +107,7 @@ local loadingEvents = {
 -------------------------------------------------------------------------------
 -- Сonfiguration operations
 -------------------------------------------------------------------------------
+
 -- Configuration table
 local cfg = {}
 
@@ -88,35 +115,7 @@ local cfg = {}
 local cfgPath = system.pathForFile( "lgccfg.json", system.DocumentsDirectory )
 
 -------------------------------------------------------------------------------
--- Interface windows change
--------------------------------------------------------------------------------
-
-local function gotoOptions()
-
-    composer.gotoScene( "optwindow" )
-
-end
-
-local function gotoShop()
-
-    composer.gotoScene( "windowshop" )
-
-end
-
-local function gotoStats()
-
-    composer.gotoScene( "windowstat" )
-
-end
-
-local function gotoCheats()
-
-    composer.gotoScene( "windowcheat" )
-
-end
-
--------------------------------------------------------------------------------
--- In-game logic
+-- Utility logic
 -------------------------------------------------------------------------------
 
 -- Round number to base
@@ -126,26 +125,14 @@ local function roundTo( roundNumber, roundBase )
 
 end
 
--- Return difference multiplier between measures - if Start less than End to 1, then return 0.001 etc
+-- Return multiplier between different measures - if Start less than End to 1, then return 0.001 etc
 local function measureDiff( measureStart, measureEnd )
 
 	return 10 ^ ( 3 * ( measureStart - measureEnd ) )
 
 end
 
---Used after every player screen tap - add to taps player, taps total and add
--- to load total believed data with difference between believe and load total measures
-local function tapSingle()
-    
-    cfg.tapsPlayer = cfg.tapsPlayer + 1
-    cfg.tapsTotal = cfg.tapsTotal + 1
-    cfg.loadTotal = cfg.loadTotal + cfg.believe * measureDiff( cfg.believeMeasure, cfg.loadTotalMeasure )
-    loadingEvents.sizeLoad = loadingEvents.sizeLoad + cfg.believe * measureDiff( cfg.believeMeasure, loadingEvents.measure )
-
-
-end
-
---randomly takes strings from table and swap them
+-- Randomly swap elements in table
 local function commentRnd( commentTable )
 
     for i = 1, #commentTable do
@@ -159,27 +146,16 @@ local function commentRnd( commentTable )
 
 end
 
--- if current taps more than check value - update comments
-local function checkUpdateComments( currentTaps, checkTaps )
+local function stringsUpdate( obj )
 
-    if ( currentTaps > ( checkTaps + 30 ) ) then
-
-        Comment.str1.text = Comment.str2.text
-        Comment.str2.text = Comment.str3.text
-        Comment.str3.text = Comment.arr[Comment.next]
-        Comment.next = Comment.next + 1
+    obj.str1.text = obj.str2.text
+    obj.str2.text = obj.str3.text
+    obj.str3.text = obj.arr[obj.next]
+    obj.next = obj.next + 1
         
-        if ( Comment.next > #Comment.arr ) then
+    if ( obj.next > #obj.arr ) then
 
-            Comment.next = 1
-
-        end
-
-        return currentTaps
-
-    else
-
-        return checkTaps
+        obj.next = 1
 
     end
 
@@ -187,8 +163,61 @@ end
 
 -- Randomly return size of new loading object
 local function sizeLoad( loadSpeed )
-
     return math.random( loadSpeed * 50, loadSpeed * 75 )
+end
+
+-- When any of indicators be too much big, then it be reduced and updated measure
+local function measureUpdate()
+
+    if cfg.loadTotal > 10000 then
+
+        cfg.loadTotalMeasure = cfg.loadTotalMeasure + 1
+        cfg.loadTotal = cfg.loadTotal * 0.001
+
+    end
+
+    if cfg.believe > 10000 then
+
+        cfg.believeMeasure = cfg.believeMeasure + 1
+        cfg.believe = cfg.believe * 0.001
+
+    end
+
+    if cfg.loadSpeed > 10000 then
+
+        cfg.loadSpeedMeasure = cfg.loadSpeedMeasure + 1
+        cfg.loadSpeed = cfg.loadSpeed * 0.001
+
+    end
+
+end
+
+-------------------------------------------------------------------------------
+-- In-game logic
+-------------------------------------------------------------------------------
+
+-- Used after every player screen tap - add to taps player, taps total and add
+-- to load total believed data with difference between believe and load total measures
+local function tapSingle()
+    
+    cfg.tapsPlayer = cfg.tapsPlayer + 1
+    cfg.tapsTotal = cfg.tapsTotal + 1
+    cfg.loadTotal = cfg.loadTotal + cfg.believe * measureDiff( cfg.believeMeasure, cfg.loadTotalMeasure )
+    loadingEvents.sizeLoad = loadingEvents.sizeLoad + cfg.believe * measureDiff( cfg.believeMeasure, loadingEvents.measure )
+
+end
+
+-- if current taps more than check value - update comments
+local function checkUpdateComments( currentTaps, checkTaps )
+
+    if ( currentTaps > ( checkTaps + 30 ) ) then
+        stringsUpdate( Comment )
+        return currentTaps
+
+    else
+        return checkTaps
+
+    end
 
 end
 
@@ -199,26 +228,12 @@ local function checkUpdateEvents( totalLoad, loopLoad )
 
     -- check to loaded or not element in 1st line
     if ( newSize >= loadingEvents.sizeFull ) then
-
         loadingEvents.sizeFull = sizeLoad( cfg.believe ) -- detect next event load
         loadingEvents.measure = cfg.believeMeasure -- update measure
-        loadingEvents.str1.text = loadingEvents.str2.text
-        loadingEvents.str2.text = loadingEvents.str3.text
-
-        loadingEvents.next = loadingEvents.next + 1
-        
-        if ( loadingEvents.next > #loadingEvents.arr ) then
-        
-            loadingEvents.next = 1
-        
-        end
-
-        loadingEvents.str3.text = loadingEvents.arr[loadingEvents.next]
-
+        stringsUpdate( loadingEvents )
         return 0
 
     else
-
         return newSize
 
     end
@@ -244,65 +259,6 @@ local function gameLoop()
 
 end
 
--- When any of indicators be too much big, then it be reduced and updated measure
-local function measureUpdate()
-
-    if cfg.loadTotal > 10000 then
-
-    	cfg.loadTotalMeasure = cfg.loadTotalMeasure + 1
-    	cfg.loadTotal = cfg.loadTotal * 0.001
-
-    end
-
-    if cfg.believe > 10000 then
-
-    	cfg.believeMeasure = cfg.believeMeasure + 1
-    	cfg.believe = cfg.believe * 0.001
-
-    end
-
-    if cfg.loadSpeed > 10000 then
-
-    	cfg.loadSpeedMeasure = cfg.loadSpeedMeasure + 1
-    	cfg.loadSpeed = cfg.loadSpeed * 0.001
-
-    end
-
-end
-
--------------------------------------------------------------------------------
--- Debug: Keyboard Listener to reset game
--------------------------------------------------------------------------------
-
-local function onKeyEvent( event )
-
-    -- Print which key was pressed down/up
-    local isSPressed = ( event.keyName == 'p' and event.phase == 'down' )
-
-    if (  isSPressed ) then
-
-        cfg = LoadSave.cfgReset( cfg, cfgPath )
-
-    end
- 
-    -- If the "back" key was pressed on Android or Windows Phone, prevent it from backing out of the app
-    if ( event.keyName == "back" ) then
-
-        local platformName = system.getInfo( "platformName" )
-        if ( platformName == "Android" ) or ( platformName == "WinPhone" ) then
-
-            return true
-
-        end
-
-    end
-
-    -- IMPORTANT! Return false to indicate that this app is NOT overriding the received key
-    -- This lets the operating system execute its default handling of the key
-    return false
-
-end
-
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -315,12 +271,10 @@ function scene:create( event )
 
     -- Reset if option set, else load game
     if ( composer.getVariable( "gameReset" ) ) then
-
         composer.setVariable( "gameReset", false )
         cfg = LoadSave.cfgReset( cfg, cfgPath )
 
     else
-        
         cfg = LoadSave.cfgLoad( cfg, cfgPath )
 
     end
@@ -345,17 +299,24 @@ function scene:create( event )
     Comment.arr = commentRnd( Comment.arr )
 
     --Load fake loading modules
-    loadingEvents.arr = commentLoad( "subjload.json", loadingEvents.arr )
+    local unsortedEvents = commentLoad( "subjload.json", loadingEvents.arr )
+        local plainEvents = {}
+        for i = 1, #unsortedEvents do
+            for k = 2 , #unsortedEvents[i] do
+                table.insert( plainEvents, unsortedEvents[i][k] .. " " .. unsortedEvents[i][1] )
+            end
+        end
+        loadingEvents.arr = plainEvents
 
 	-- Set up display groups
-	backGroup = display.newGroup()  -- Display group for the background image
-	sceneGroup:insert( backGroup )  -- Insert into the scene's view group
- 
-	mainGroup = display.newGroup()  -- Display group for the ship, asteroids, lasers, etc.
-	sceneGroup:insert( mainGroup )  -- Insert into the scene's view group
- 
-	uiGroup = display.newGroup()    -- Display group for UI objects like the score
-	sceneGroup:insert( uiGroup )    -- Insert into the scene's view group
+    	backGroup = display.newGroup()  -- Display group for the background image
+    	sceneGroup:insert( backGroup )  -- Insert into the scene's view group
+     
+    	mainGroup = display.newGroup()  -- Display group for the ship, asteroids, lasers, etc.
+    	sceneGroup:insert( mainGroup )  -- Insert into the scene's view group
+     
+    	uiGroup = display.newGroup()    -- Display group for UI objects like the score
+    	sceneGroup:insert( uiGroup )    -- Insert into the scene's view group
 
 	-- Load the background
     local background = display.newImageRect( backGroup, "assets/001/back.png", 1280, 720 )
@@ -379,34 +340,34 @@ function scene:create( event )
     Comment.str2 = makeString( backGroup, 10, 90, panelFont, 30 )
     Comment.str3 = makeString( backGroup, 10, 120, panelFont, 30 )
 
-    --Make events strings
+    -- Make events strings
     loadingEvents.str1 = makeString( backGroup, 10, 618, panelFont, 30 )
     loadingEvents.str2 = makeString( backGroup, 10, 648, panelFont, 30 )
     loadingEvents.str3 = makeString( backGroup, 10, 678, panelFont, 30 )
     
-    --Initial actions to fake load events
-    loadingEvents.sizeFull = sizeLoad( cfg.believe )
-    print( loadingEvents.sizeFull )
-    loadingEvents.sizeLoad = 0
-    loadingEvents.measure = cfg.believeMeasure
-    loadingEvents.str3.text = loadingEvents.arr[loadingEvents.next]
+    -- Initial actions to fake load events
+        loadingEvents.sizeFull = sizeLoad( cfg.believe )
+        loadingEvents.sizeLoad = 0
+        loadingEvents.measure = cfg.believeMeasure
+        loadingEvents.str3.text = loadingEvents.arr[loadingEvents.next]
+        loadingEvents.next = loadingEvents.next + 1
 
     -- top bar, centered and also all texts ready to refresh
-    local topbar = display.newImageRect( backGroup, "assets/001/topbar.png", 1280, 60 )
-    topbar.x = display.contentCenterX
-    topbar.y = 30
+        local topbar = display.newImageRect( backGroup, "assets/001/topbar.png", 1280, 60 )
+        topbar.x = display.contentCenterX
+        topbar.y = 30
 
-    textLoadTot = display.newText( uiGroup, cfg.loadTotal, 160, panelPosY, panelFont, 36 ) -- Loading Total moved
-    textLoadTot:setFillColor( 0, 0, 0 )
+        textLoadTot = display.newText( uiGroup, cfg.loadTotal, 160, panelPosY, panelFont, 36 ) -- Loading Total moved
+        textLoadTot:setFillColor( 0, 0, 0 )
 
-    textBelieve = display.newText( uiGroup, cfg.tapsTotal, 480, panelPosY, panelFont, 36 )
-    textBelieve:setFillColor( 0, 0, 0 )
+        textBelieve = display.newText( uiGroup, cfg.tapsTotal, 480, panelPosY, panelFont, 36 )
+        textBelieve:setFillColor( 0, 0, 0 )
 
-    textLoadSpd = display.newText( uiGroup, cfg.loadSpeed, 800, panelPosY, panelFont, 36 )
-    textLoadSpd:setFillColor( 0, 0, 0 )
+        textLoadSpd = display.newText( uiGroup, cfg.loadSpeed, 800, panelPosY, panelFont, 36 )
+        textLoadSpd:setFillColor( 0, 0, 0 )
 
-    textLoadData = display.newText( uiGroup, cfg.loadData, 1090, panelPosY, panelFont, 36 )
-    textLoadData:setFillColor( 0, 0, 0 )
+        textLoadData = display.newText( uiGroup, cfg.loadData, 1090, panelPosY, panelFont, 36 )
+        textLoadData:setFillColor( 0, 0, 0 )
 
     -- function to fast make keys in game interface
     local function initKey( groupScreen, filePng, sizeX, sizeY, placeX, placeY, callback )
@@ -426,8 +387,7 @@ function scene:create( event )
     local cheatsKey = initKey( mainGroup, "assets/001/cheats.png", 320, 150, 160, 540, gotoCheats )
     local tapKey = initKey( mainGroup, "assets/001/tapkey.png", 400, 400, display.contentCenterX, display.contentCenterY, tapSingle )
 
-    --Launch listeners - debug, gameloop, measure check
-    Runtime:addEventListener( "key", onKeyEvent ) -- to debug/ later need to be removed
+    --Launch listeners - gameloop, measure check
     gameLoopTimer = timer.performWithDelay( gameLoopDelay, gameLoop, 0 )
     measureTimer = timer.performWithDelay( 30000, measureUpdate, 0 )
 
@@ -458,11 +418,10 @@ function scene:hide( event )
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
         timer.cancel( gameLoopTimer )
+        timer.cancel( measureTimer )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
-		-- composer.removeScene( "game" )
-        Runtime:removeEventListener( "key", onKeyEvent )
         LoadSave.cfgSave( cfg, cfgPath )
         composer.removeScene( "game" )
 	end
